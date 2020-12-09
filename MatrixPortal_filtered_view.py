@@ -27,11 +27,13 @@
 
 from gimpfu import *
 import sys
-sys.stderr = open('c:/temp/er.txt', 'a')
-sys.stdout = open('c:/temp/log.txt', 'a')
-print("testing 123")
 
-#def mp_filtered_view(image, drawable, brightness, contrast, bpp) : #FUNCTION DEFINITION
+# Needed if you want to print() for debugging
+# import sys
+# sys.stderr = open('c:/temp/er.txt', 'a')
+# sys.stdout = open('c:/temp/log.txt', 'a')
+
+
 def mp_filtered_view(image, brightness, contrast, bitspp) : #FUNCTION DEFINITION
 	BIT_DEPTH = int(bitspp)
 	mask = 0xFF >> BIT_DEPTH
@@ -45,13 +47,13 @@ def mp_filtered_view(image, brightness, contrast, bitspp) : #FUNCTION DEFINITION
 	pdb.gimp_image_convert_rgb(image)
 	my_flattened_layer = pdb.gimp_image_flatten(image)
 
-	pix_region = my_flattened_layer.get_pixel_rgn(0, 0, image.width, image.height, True, True)
-	prpx = pix_region[10,10]
-	print prpx
+	# TODO: Really could not figure out the Pixel Region. All I ever got was 0x00
+	# This is supposed to be much faster access, but since the MatrixPortal size is small
+	# this probably not a big concern.
+	# pix_region = my_flattened_layer.get_pixel_rgn(0, 0, image.width, image.height, True, True)
 	
 	bpp, px = pdb.gimp_drawable_get_pixel(my_flattened_layer,0,0)
-	print "BPP: " + str(bpp) + " Pixel value: " + str(px)
-	#pdb.gimp_drawable_set_pixel(my_flattened_layer, 0, 0, bpp, (0,255,0))
+	# print "BPP: " + str(bpp) + " Pixel value: " + str(px)
 	for x in range(0, my_flattened_layer.width - 1):
 		for y in range(0, my_flattened_layer.height - 1):
 			# get the next pixel
@@ -66,14 +68,14 @@ def mp_filtered_view(image, brightness, contrast, bitspp) : #FUNCTION DEFINITION
 	pdb.gimp_drawable_update(my_flattened_layer, 0, 0, my_flattened_layer.width, my_flattened_layer.height)
 
 	# adjust brightness and constrast
-	# TODO: I cannot get the gimp_drawable_brightness_contrast to work so I
-	# am using the depracated version
+	# TODO: I cannot get the gimp_drawable_brightness_contrast to work so this uses
+	# the depracated version
 	# brightness_val = brightness/256.0
 	# contrast_val = contrast/256.0
 	# print "brightness_val: " + str(brightness_val) + " contrast_val: " + str(contrast_val)
 	# pdb.gimp_drawable_brightness_contrast(my_flattened_layer, brightness_val, contrast_val)
 
-	print "brightness: " + str(brightness) + " contrast: " + str(contrast)
+	# print "brightness: " + str(brightness) + " contrast: " + str(contrast)
 	pdb.gimp_brightness_contrast(my_flattened_layer, int(brightness), int(contrast))
 	
 	pdb.gimp_drawable_update(my_flattened_layer, 0, 0, my_flattened_layer.width, my_flattened_layer.height)
@@ -103,7 +105,16 @@ register(
 	#(PF_DRAWABLE, "drawable", "Input layer", None),
 	(PF_SPINNER, "brightness", "Brightness:", 120, (-127, 127, 1)),
 	(PF_SPINNER, "contrast", "Contrast:", 114, (-127, 127, 1)),
-	(PF_SPINNER, "bpp", "Bits per Pixel", 6, (2, 6, 1))
+	# (PF_SPINNER, "bpp", "Bits per Pixel", 6, (2, 6, 1))
+	(PF_RADIO, "bpp", "Bits per Pixel", "6",
+		(
+			("6", "6"),
+			("5", "5"),
+			("4", "4"),
+			("3", "3"),
+			("2", "2")
+		)
+	)
 	#INPUT ENDS
 	],
 	[],

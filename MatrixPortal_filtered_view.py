@@ -43,6 +43,8 @@ def mp_filtered_view(image, brightness, contrast, bitspp) : #FUNCTION DEFINITION
 
 	# start an undo group
 	pdb.gimp_image_undo_group_start(image)
+	pdb.gimp_context_push()
+
 	pdb.gimp_image_convert_rgb(image)
 	my_flattened_layer = pdb.gimp_image_flatten(image)
 
@@ -65,17 +67,20 @@ def mp_filtered_view(image, brightness, contrast, bitspp) : #FUNCTION DEFINITION
 	pdb.gimp_drawable_update(my_flattened_layer, 0, 0, my_flattened_layer.width, my_flattened_layer.height)
 
 	# adjust brightness and constrast
-	brightness_val = brightness/256.0
-	contrast_val = contrast/256.0
-	print "brightness_val: " + str(brightness_val) + " contrast_val: " + str(contrast_val)
-	pdb.gimp_drawable_brightness_contrast(my_flattened_layer, brightness_val, contrast_val)
+	# TODO: I cannot get the gimp_drawable_brightness_contrast to work so I
+	# am using the depracated version
+	# brightness_val = brightness/256.0
+	# contrast_val = contrast/256.0
+	# print "brightness_val: " + str(brightness_val) + " contrast_val: " + str(contrast_val)
+	# pdb.gimp_drawable_brightness_contrast(my_flattened_layer, brightness_val, contrast_val)
+
+	print "brightness: " + str(brightness) + " contrast: " + str(contrast)
+	pdb.gimp_brightness_contrast(my_flattened_layer, int(brightness), int(contrast))
 	
 	pdb.gimp_drawable_update(my_flattened_layer, 0, 0, my_flattened_layer.width, my_flattened_layer.height)
 	
-	#gimp.Display(image)
-
-	
 	# end undo group
+	pdb.gimp_context_pop()
 	pdb.gimp_image_undo_group_end(image)
 """
 https://gitlab.gnome.org/GNOME/gimp/-/blob/gimp-2-10/plug-ins/pygimp/gimpfu.py
@@ -97,8 +102,8 @@ register(
 	#INPUT BEGINS
 	(PF_IMAGE, "image", "takes current image", None),
 	#(PF_DRAWABLE, "drawable", "Input layer", None),
-	(PF_SPINNER, "brightness", "Brightness:", 120, (-128, 128, 1)),
-	(PF_SPINNER, "contrast", "Contrast:", 114, (-128, 128, 1)),
+	(PF_SPINNER, "brightness", "Brightness:", 120, (-127, 127, 1)),
+	(PF_SPINNER, "contrast", "Contrast:", 114, (-127, 127, 1)),
 	(PF_SPINNER, "bpp", "Bits per Pixel", 6, (2, 6, 1))
 	#INPUT ENDS
 	],

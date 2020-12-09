@@ -31,9 +31,6 @@ sys.stderr = open('c:/temp/er.txt', 'a')
 sys.stdout = open('c:/temp/log.txt', 'a')
 print("testing 123")
 
-def rgb_to_hex(rgb):
-    return '%02x%02x%02x' % rgb
-	
 #def mp_filtered_view(image, drawable, brightness, contrast, bpp) : #FUNCTION DEFINITION
 def mp_filtered_view(image, brightness, contrast, bitspp) : #FUNCTION DEFINITION
 	BIT_DEPTH = int(bitspp)
@@ -48,8 +45,10 @@ def mp_filtered_view(image, brightness, contrast, bitspp) : #FUNCTION DEFINITION
 	pdb.gimp_image_convert_rgb(image)
 	my_flattened_layer = pdb.gimp_image_flatten(image)
 
-#	pix_region = drawable.get_pixel_rgn(0, 0, image.width, image.height, True, True)
-#	px = pix_region[10,10]
+	pix_region = my_flattened_layer.get_pixel_rgn(0, 0, image.width, image.height, True, True)
+	prpx = pix_region[10,10]
+	print prpx
+	
 	bpp, px = pdb.gimp_drawable_get_pixel(my_flattened_layer,0,0)
 	print "BPP: " + str(bpp) + " Pixel value: " + str(px)
 	#pdb.gimp_drawable_set_pixel(my_flattened_layer, 0, 0, bpp, (0,255,0))

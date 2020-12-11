@@ -25,13 +25,16 @@
 # ------------
 # Rel 1: Initial release
 
+BRIGHTNESS_DEFAULT = 70
+CONTRAST_DEFAULT = 40
+
 from gimpfu import *
 from array import array
 
 # Needed if you want to print() for debugging
 # import sys
-# sys.stderr = open('c:/temp/er.txt', 'a')
-# sys.stdout = open('c:/temp/log.txt', 'a')
+# sys.stderr = open('g:/temp/er.txt', 'a')
+# sys.stdout = open('g:/temp/log.txt', 'a')
 
 
 def mp_filtered_view(image, brightness, contrast, bitspp) : #FUNCTION DEFINITION
@@ -45,7 +48,9 @@ def mp_filtered_view(image, brightness, contrast, bitspp) : #FUNCTION DEFINITION
 	pdb.gimp_image_undo_group_start(image)
 	pdb.gimp_context_push()
 
-	pdb.gimp_image_convert_rgb(image)
+	if pdb.gimp_image_base_type(image) != RGB:
+		pdb.gimp_image_convert_rgb(image)
+
 	my_flattened_layer = pdb.gimp_image_flatten(image)
 
 	bytes_pp = my_flattened_layer.bpp
@@ -124,8 +129,8 @@ register(
 	#INPUT BEGINS
 	(PF_IMAGE, "image", "takes current image", None),
 	#(PF_DRAWABLE, "drawable", "Input layer", None),
-	(PF_SPINNER, "brightness", "Brightness:", 120, (-127, 127, 1)),
-	(PF_SPINNER, "contrast", "Contrast:", 114, (-127, 127, 1)),
+	(PF_SPINNER, "brightness", "Brightness:", BRIGHTNESS_DEFAULT, (-127, 127, 1)),
+	(PF_SPINNER, "contrast", "Contrast:", CONTRAST_DEFAULT, (-127, 127, 1)),
 	# (PF_SPINNER, "bpp", "Bits per Pixel", 6, (2, 6, 1))
 	(PF_RADIO, "bpp", "Bits per Pixel", "6",
 		(

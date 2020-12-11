@@ -26,7 +26,7 @@
 # Rel 1: Initial release
 
 from gimpfu import *
-import sys
+from array import array
 
 # Needed if you want to print() for debugging
 # import sys
@@ -35,6 +35,7 @@ import sys
 
 
 def mp_filtered_view(image, brightness, contrast, bitspp) : #FUNCTION DEFINITION
+	# create the mask to discard the selected number of low order bits
 	BIT_DEPTH = int(bitspp)
 	mask = 0xFF >> BIT_DEPTH
 	bit_mask = 0b11111111
@@ -47,40 +48,60 @@ def mp_filtered_view(image, brightness, contrast, bitspp) : #FUNCTION DEFINITION
 	pdb.gimp_image_convert_rgb(image)
 	my_flattened_layer = pdb.gimp_image_flatten(image)
 
-	# TODO: Really could not figure out the Pixel Region. All I ever got was 0x00
-	# This is supposed to be much faster access, but since the MatrixPortal size is small
-	# this probably not a big concern.
-	# pix_region = my_flattened_layer.get_pixel_rgn(0, 0, image.width, image.height, True, True)
-	
-	bpp, px = pdb.gimp_drawable_get_pixel(my_flattened_layer,0,0)
-	# print "BPP: " + str(bpp) + " Pixel value: " + str(px)
-	for x in range(0, my_flattened_layer.width - 1):
-		for y in range(0, my_flattened_layer.height - 1):
-			# get the next pixel
-			bpp, px = pdb.gimp_drawable_get_pixel(my_flattened_layer,x,y)
-			# do the bit per pixel bitspp trim
-			r_mod = px[0] & mask
-			g_mod = px[1] & mask
-			b_mod = px[2] & mask
-			#print "BPP: " + str(bpp) + " Old Pixel value: " + str(px) + " New Pixel value: " + str((r_mod,g_mod,b_mod))
-			pdb.gimp_drawable_set_pixel(my_flattened_layer, x, y, bpp, (r_mod,g_mod,b_mod))
-			
-	pdb.gimp_drawable_update(my_flattened_layer, 0, 0, my_flattened_layer.width, my_flattened_layer.height)
+	bytes_pp = my_flattened_layer.bpp
+	# print "Bytes_pp" + str(bytes_pp)
 
-	# adjust brightness and constrast
-	# TODO: I cannot get the gimp_drawable_brightness_contrast to work so this uses
-	# the depracated version
-	# brightness_val = brightness/256.0
-	# contrast_val = contrast/256.0
-	# print "brightness_val: " + str(brightness_val) + " contrast_val: " + str(contrast_val)
-	# pdb.gimp_drawable_brightness_contrast(my_flattened_layer, brightness_val, contrast_val)
+	# All of the pixel region logic is from:
+	# https://github.com/akkana/gimp-plugins/blob/master/arclayer.py
 
-	# print "brightness: " + str(brightness) + " contrast: " + str(contrast)
-	pdb.gimp_brightness_contrast(my_flattened_layer, int(brightness), int(contrast))
+	# create a new destination layer
+	layername = "mpf flattened"
+	destDrawable = gimp.Layer(image, layername, image.width, image.height, \
+							my_flattened_layer.type, my_flattened_layer.opacity, my_flattened_layer.mode)
+
+	# add destination layer to image
+	image.add_layer(destDrawable, 0)
+
+	# create a source pixel region on the origional layer(drawable), False-False
+	# Need to set the last two parameters to False for the Source Pixel Region (https://www.gimp.org/docs/python/#PREGION-OBJECT)
+	# 	dirty - Non zero if changes to the pixel region will be reflected in the drawable.
+	#   shadow - Non zero if the pixel region acts on the shadow tiles of the drawable.
+	srcRgn = my_flattened_layer.get_pixel_rgn(0, 0, image.width, image.height, False, False)
+
+	# create an array from the source pixel region
+	# create an array of unsigned integer of size 1 byte as big as the image
+	src_pixels = array("B", srcRgn[0:image.width, 0:image.height])
+
+	# create a destination pixel region on destination layer, True-True
+	dstRgn = destDrawable.get_pixel_rgn(0, 0, image.width, image.height, True, True)
+
+	# create and initialize to x00 destination array for destination pixels
+	p_size = len(srcRgn[0,0])               
+	dest_pixels = array("B", "\x00" * (image.width * image.height * p_size))
+
+	# loop over the source pixel region to
+	for i in range(0, len(dest_pixels) - 1):
+		# use that mask to drop the low order bits
+		dest_pixels[i] = src_pixels[i] & mask
+		# print i, src_pixels[i], dest_pixels[i]
+
+	# Set the destination pixel region to the destionation array
+	dstRgn[0:image.width, 0:image.height] = dest_pixels.tostring() 
+
+	# Flush and merge the destination layer
+	destDrawable.flush()
+	destDrawable.merge_shadow(True)
+
+	# Set the source layer to invisible
+	my_flattened_layer.visible = False
+
+	# change brightness and contrast
+	pdb.gimp_brightness_contrast(destDrawable, int(brightness), int(contrast))
+
+	# update the layer
+	destDrawable.update(0, 0, image.width, image.height)
 	
-	pdb.gimp_drawable_update(my_flattened_layer, 0, 0, my_flattened_layer.width, my_flattened_layer.height)
-	
-	# end undo group
+	# wrap up and end undo group
 	pdb.gimp_context_pop()
 	pdb.gimp_image_undo_group_end(image)
 """

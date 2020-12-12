@@ -3,7 +3,6 @@
 # MatrixPortal_filtered_view.py Rel 1
 # Simulate display on a Matrix Portal RGB LED Display
 # Created by Charles Foster
-# Comments directed to https://gimplearn.net
 #
 # License: GPLv3
 # This program is free software: you can redistribute it and/or modify
@@ -53,7 +52,8 @@ def mp_filtered_view(image, brightness, contrast, bitspp) : #FUNCTION DEFINITION
 
 	my_flattened_layer = pdb.gimp_image_flatten(image)
 
-	bytes_pp = my_flattened_layer.bpp
+	# I don't believe I need to worry about bytes per pixel with a flattened image
+	# bytes_pp = my_flattened_layer.bpp
 	# print "Bytes_pp" + str(bytes_pp)
 
 	# All of the pixel region logic is from:
@@ -68,23 +68,24 @@ def mp_filtered_view(image, brightness, contrast, bitspp) : #FUNCTION DEFINITION
 	image.add_layer(destDrawable, 0)
 
 	# create a source pixel region on the origional layer(drawable), False-False
-	# Need to set the last two parameters to False for the Source Pixel Region (https://www.gimp.org/docs/python/#PREGION-OBJECT)
+	# Need to set the last two parameters to False for the Source Pixel Region
+	# See (https://www.gimp.org/docs/python/#PREGION-OBJECT)
 	# 	dirty - Non zero if changes to the pixel region will be reflected in the drawable.
 	#   shadow - Non zero if the pixel region acts on the shadow tiles of the drawable.
 	srcRgn = my_flattened_layer.get_pixel_rgn(0, 0, image.width, image.height, False, False)
 
-	# create an array from the source pixel region
 	# create an array of unsigned integer of size 1 byte as big as the image
+	# from the source pixel region
 	src_pixels = array("B", srcRgn[0:image.width, 0:image.height])
 
 	# create a destination pixel region on destination layer, True-True
 	dstRgn = destDrawable.get_pixel_rgn(0, 0, image.width, image.height, True, True)
 
-	# create and initialize to x00 destination array for destination pixels
+	# create and initialize to x00 the destination array pixels
 	p_size = len(srcRgn[0,0])               
 	dest_pixels = array("B", "\x00" * (image.width * image.height * p_size))
 
-	# loop over the source pixel region to
+	# loop over the source pixel region. Every pixel's low order bits are masked as per bpp
 	for i in range(0, len(dest_pixels) - 1):
 		# use that mask to drop the low order bits
 		dest_pixels[i] = src_pixels[i] & mask
@@ -100,7 +101,7 @@ def mp_filtered_view(image, brightness, contrast, bitspp) : #FUNCTION DEFINITION
 	# Set the source layer to invisible
 	my_flattened_layer.visible = False
 
-	# change brightness and contrast
+	# change brightness and contrast as per the settings passed in
 	pdb.gimp_brightness_contrast(destDrawable, int(brightness), int(contrast))
 
 	# update the layer
@@ -128,10 +129,8 @@ register(
 	[ 
 	#INPUT BEGINS
 	(PF_IMAGE, "image", "takes current image", None),
-	#(PF_DRAWABLE, "drawable", "Input layer", None),
 	(PF_SPINNER, "brightness", "Brightness:", BRIGHTNESS_DEFAULT, (-127, 127, 1)),
 	(PF_SPINNER, "contrast", "Contrast:", CONTRAST_DEFAULT, (-127, 127, 1)),
-	# (PF_SPINNER, "bpp", "Bits per Pixel", 6, (2, 6, 1))
 	(PF_RADIO, "bpp", "Bits per Pixel", "6",
 		(
 			("6", "6"),
